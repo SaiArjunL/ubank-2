@@ -5,8 +5,10 @@ import com.upgrad.ubank.dtos.Transaction;
 import com.upgrad.ubank.exceptions.AccountAlreadyRegisteredException;
 import com.upgrad.ubank.exceptions.AccountNotFoundException;
 import com.upgrad.ubank.exceptions.IncorrectPasswordException;
+import com.upgrad.ubank.exceptions.InsufficientBalanceException;
 import com.upgrad.ubank.services.*;
 
+import javax.naming.InsufficientResourcesException;
 import java.util.Scanner;
 
 public class Application {
@@ -29,7 +31,7 @@ public class Application {
         loggedInAccountNo = 0;
     }
 
-    private void start () {
+    private void start () throws AccountNotFoundException, InsufficientResourcesException {
         boolean flag = true;
 
         System.out.println("*********************");
@@ -151,7 +153,7 @@ public class Application {
         return account;
     }
 
-    private void getAccount () {
+    private void getAccount () throws AccountNotFoundException {
         if (!isLoggedIn) {
             System.out.println("You are not logged in.");
             return;
@@ -161,10 +163,15 @@ public class Application {
         System.out.println("*******Account*******");
         System.out.println("*********************");
 
-        System.out.println(accountService.getAccount(loggedInAccountNo));
+        try {
+            System.out.println(accountService.getAccount(loggedInAccountNo));
+        }
+        catch (AccountNotFoundException ae){
+            System.out.println(ae.getMessage());
+        }
     }
 
-    private void deposit () {
+    private void deposit () throws AccountNotFoundException {
         if (!isLoggedIn) {
             System.out.println("You are not logged in.");
             return;
@@ -184,15 +191,17 @@ public class Application {
             return;
         }
 
-        Account account = accountService.deposit(loggedInAccountNo, amount);
-        if (account == null) {
-            System.out.println("Could not deposit into account.");
-        } else {
-            System.out.println("Money successfully deposited into account.");
+        Account account = null;
+
+        try{
+            account = accountService.deposit(loggedInAccountNo, amount);
+        }
+        catch (AccountNotFoundException ae){
+            System.out.println(ae.getMessage());
         }
     }
 
-    private void withdraw () {
+    private void withdraw () throws AccountNotFoundException, InsufficientResourcesException {
         if (!isLoggedIn) {
             System.out.println("You are not logged in.");
             return;
@@ -212,11 +221,14 @@ public class Application {
             return;
         }
 
-        Account account = accountService.withdraw(loggedInAccountNo, amount);
-        if (account == null) {
-            System.out.println("Could not withdraw from account.");
-        } else {
-            System.out.println("Money successfully withdrawn from account.");
+
+        Account account = null;
+
+        try{
+            account = accountService.withdraw(loggedInAccountNo, amount);
+        }
+        catch (AccountNotFoundException | InsufficientBalanceException ae){
+            System.out.println(ae.getMessage());
         }
     }
 
@@ -256,7 +268,7 @@ public class Application {
         loggedInAccountNo = 0;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws AccountNotFoundException, InsufficientResourcesException {
         TransactionService transactionService = new TransactionServiceImpl();
         AccountService accountService = new AccountServiceImpl(transactionService);
         Application application = new Application(accountService, transactionService);
